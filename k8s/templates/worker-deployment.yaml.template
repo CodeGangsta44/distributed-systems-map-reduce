@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: map-reduce-worker
+spec:
+  selector:
+    matchLabels:
+      app: map-reduce-worker
+  replicas: ${WORKER_QTY}
+  template:
+    metadata:
+      labels:
+        app: map-reduce-worker
+    spec:
+      containers:
+        - name: map-reduce-worker
+          image: rdcloudsystems/map-reduce-worker:${APP_VERSION}
+          imagePullPolicy: Always
+          env:
+            - name: SUBMISSION_SERVICE_URL
+              value: http://map-reduce:8080
