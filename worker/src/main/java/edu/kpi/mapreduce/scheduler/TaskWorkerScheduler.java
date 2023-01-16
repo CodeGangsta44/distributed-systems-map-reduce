@@ -34,5 +34,4 @@ public class TaskWorkerScheduler {
         System.out.println("Starting work on task: " + task.toString());
         executorService.submit(new TaskWorker(taskIntegrationService, task)).get();
     }
-
 }

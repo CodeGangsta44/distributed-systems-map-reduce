@@ -24,6 +24,8 @@ public class Task {
     @ElementCollection(fetch = FetchType.EAGER)
     @Column(columnDefinition = "TEXT")
     private List<String> output;
+    private TaskState state;
+    private String workerGuid;
     private boolean solved;
     @ManyToOne
     private Stage stage;

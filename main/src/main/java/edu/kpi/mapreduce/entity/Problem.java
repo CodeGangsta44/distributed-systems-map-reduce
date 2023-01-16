@@ -1,5 +1,6 @@
 package edu.kpi.mapreduce.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -18,6 +19,7 @@ public class Problem {
     private Long id;
     @OneToMany(mappedBy = "problem", fetch = FetchType.EAGER)
     private List<Stage> stages;
+    @Column(columnDefinition = "TEXT")
     private String result;
     private boolean solved;
 }

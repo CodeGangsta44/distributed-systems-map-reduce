@@ -9,10 +9,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.NoSuchElementException;
+
+import static edu.kpi.mapreduce.constant.MapReduceConstants.WORKER_ID_HEADER_NAME;
 
 @RestController
 @RequestMapping("/tasks")
@@ -28,11 +31,11 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<TaskDto> getTask() {
+    public ResponseEntity<TaskDto> getTask(@RequestHeader(WORKER_ID_HEADER_NAME) final String guid) {
 
         try {
 
-            return ResponseEntity.ok(convert(executionQueueService.getTask()));
+            return ResponseEntity.ok(convert(executionQueueService.getTask(guid)));
 
         } catch (final NoSuchElementException e) {
 

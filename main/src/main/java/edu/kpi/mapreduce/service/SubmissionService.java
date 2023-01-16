@@ -1,11 +1,13 @@
 package edu.kpi.mapreduce.service;
 
 import edu.kpi.mapreduce.dto.ProblemDto;
+import edu.kpi.mapreduce.dto.StageDto;
 import edu.kpi.mapreduce.dto.TaskSolutionDto;
 import edu.kpi.mapreduce.entity.Problem;
 import edu.kpi.mapreduce.entity.Stage;
 import edu.kpi.mapreduce.entity.StageType;
 import edu.kpi.mapreduce.entity.Task;
+import edu.kpi.mapreduce.entity.TaskState;
 import edu.kpi.mapreduce.repository.ProblemRepository;
 import edu.kpi.mapreduce.repository.StageRepository;
 import edu.kpi.mapreduce.repository.TaskRepository;
@@ -88,9 +90,13 @@ public class SubmissionService {
 
     private Stream<Stage> createFinalStage(final Problem problem, final ProblemDto problemDto) {
 
-        final var lastStage = problemDto.getStages().get(problemDto.getStages().size() - 1);
+        return Stream.of(getLastStage(problemDto))
+                .map(lastStage -> createStage(problem, StageType.REDUCE, lastStage.getFunction(), lastStage.getReduceInitialIdentity()));
+    }
 
-        return Stream.of(createStage(problem, StageType.REDUCE, lastStage.getFunction(), lastStage.getReduceInitialIdentity()));
+    private StageDto getLastStage(final ProblemDto problem) {
+
+        return problem.getStages().get(problem.getStages().size() - 1);
     }
 
     private Stage createStage(final Problem problem, final StageType type, final String function, final String reduceInitialIdentity) {
@@ -112,6 +118,7 @@ public class SubmissionService {
         final var task = new Task();
         task.setInput(input);
         task.setStage(stage);
+        task.setState(TaskState.WAIT);
         taskRepository.save(task);
 
         return task;
@@ -167,7 +174,7 @@ public class SubmissionService {
 
     private void updateTask(final Task task, final List<String> output) {
 
-        task.setSolved(Boolean.TRUE);
+        task.setState(TaskState.COMPLETED);
         task.setOutput(output);
         taskRepository.save(task);
     }
@@ -193,6 +200,7 @@ public class SubmissionService {
             final var finalTask = new Task();
             finalTask.setStage(nextStage);
             finalTask.setInput(input);
+            finalTask.setState(TaskState.WAIT);
 
             taskRepository.save(finalTask);
             executionQueueService.schedule(finalTask);
@@ -206,6 +214,7 @@ public class SubmissionService {
         final var nextTask = new Task();
         nextTask.setStage(nextStage);
         nextTask.setInput(result);
+        nextTask.setState(TaskState.WAIT);
 
         taskRepository.save(nextTask);
 
@@ -226,7 +235,8 @@ public class SubmissionService {
 
         return stage.getTasks()
                 .stream()
-                .allMatch(Task::isSolved);
+                .map(Task::getState)
+                .allMatch(TaskState.COMPLETED::equals);
     }
 
     private <T> T getNext(final List<T> input, final int index) {
