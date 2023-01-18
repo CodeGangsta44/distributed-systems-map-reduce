@@ -1,6 +1,7 @@
 package edu.kpi.mapreduce.controller;
 
 import edu.kpi.mapreduce.dto.ProblemDto;
+import edu.kpi.mapreduce.dto.ResultDto;
 import edu.kpi.mapreduce.service.SubmissionService;
 import edu.kpi.mapreduce.validator.ProblemStagesValidator;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +33,7 @@ public class SubmissionController {
     }
 
     @GetMapping("/{id}")
-    public String getResult(@PathVariable("id") final Long id) {
+    public ResultDto getResult(@PathVariable("id") final Long id) {
 
         return submissionService.getResult(id);
     }

@@ -10,6 +10,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -19,15 +20,17 @@ public class TaskWorker implements Runnable {
 
     private final TaskIntegrationService taskIntegrationService;
     private final Task task;
+    private final Date taskStart;
     private final Map<TaskType, BiFunction<Task, Invocable, List<String>>> handlers = Map.ofEntries(
             Map.entry(TaskType.MAP, this::executeMap),
             Map.entry(TaskType.REDUCE, this::executeReduce)
     );
 
-    public TaskWorker(final TaskIntegrationService taskIntegrationService, final Task task) {
+    public TaskWorker(final TaskIntegrationService taskIntegrationService, final Task task, final Date taskStart) {
 
         this.taskIntegrationService = taskIntegrationService;
         this.task = task;
+        this.taskStart = taskStart;
     }
 
     @Override
@@ -36,6 +39,7 @@ public class TaskWorker implements Runnable {
         final var manager = new ScriptEngineManager();
         final var engine = manager.getEngineByName("js");
 
+        final long start = System.currentTimeMillis();
         createFunction(engine, task.getFunction());
 
         final var invocable = (Invocable) engine;
@@ -46,6 +50,8 @@ public class TaskWorker implements Runnable {
         final Solution solution = Solution.builder()
                 .id(task.getId())
                 .result(result)
+                .computationDuration(System.currentTimeMillis() - start)
+                .taskStart(taskStart)
                 .build();
 
         System.out.println("Sending solution: " + solution.toString());

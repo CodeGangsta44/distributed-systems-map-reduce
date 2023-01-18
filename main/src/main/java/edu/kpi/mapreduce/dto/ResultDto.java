@@ -4,20 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-
-import java.util.Date;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
-public class Solution {
+public class ResultDto {
 
-    private Long id;
-    private List<String> result;
+    private boolean completed;
+    private String result;
+    private Long executionDuration;
     private Long computationDuration;
-    private Date taskStart;
+    private Long overheadDuration;
 }

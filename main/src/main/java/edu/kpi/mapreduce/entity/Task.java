@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 
 @Entity(name = "tasks")
@@ -29,4 +30,7 @@ public class Task {
     private boolean solved;
     @ManyToOne
     private Stage stage;
+    private Long computationDuration;
+    private Date taskStart;
+    private Date taskFinish;
 }

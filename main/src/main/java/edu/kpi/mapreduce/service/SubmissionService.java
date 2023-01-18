@@ -1,6 +1,7 @@
 package edu.kpi.mapreduce.service;
 
 import edu.kpi.mapreduce.dto.ProblemDto;
+import edu.kpi.mapreduce.dto.ResultDto;
 import edu.kpi.mapreduce.dto.StageDto;
 import edu.kpi.mapreduce.dto.TaskSolutionDto;
 import edu.kpi.mapreduce.entity.Problem;
@@ -11,11 +12,14 @@ import edu.kpi.mapreduce.entity.TaskState;
 import edu.kpi.mapreduce.repository.ProblemRepository;
 import edu.kpi.mapreduce.repository.StageRepository;
 import edu.kpi.mapreduce.repository.TaskRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -41,6 +45,21 @@ public class SubmissionService {
         this.parallelism = parallelism;
     }
 
+    @PostConstruct
+    public void rescheduleSavedTasks() {
+
+        Stream.concat(
+                taskRepository.findByState(TaskState.WAIT).stream(),
+                taskRepository.findByState(TaskState.IN_PROGRESS).stream())
+                .forEach(task -> {
+                    task.setWorkerGuid(null);
+                    task.setState(TaskState.WAIT);
+                    taskRepository.save(task);
+
+                    executionQueueService.schedule(task);
+                });
+    }
+
     public Long submitProblem(final ProblemDto problemDto) {
 
         final var problem = new Problem();
@@ -50,9 +69,14 @@ public class SubmissionService {
         final var firstStage = stages.get(0);
 
         problem.setStages(stages);
-        problemRepository.save(problem);
 
-        scheduleTasks(firstStage, parseInput(problemDto.getInput()));
+        final List<Task> tasks = createTasks(firstStage, parseInput(problemDto.getInput()));
+
+        problem.setStartDate(new Date());
+
+        tasks.forEach(executionQueueService::schedule);
+
+        problemRepository.save(problem);
 
         return problem.getId();
     }
@@ -68,11 +92,11 @@ public class SubmissionService {
         return (int) Math.ceil((input.size() / ((double) parallelism)));
     }
 
-    private void scheduleTasks(final Stage firstStage, final List<String> input) {
+    private List<Task> createTasks(final Stage firstStage, final List<String> input) {
 
-        createChunks(input, calculateQuantityOfChunks(input))
+        return createChunks(input, calculateQuantityOfChunks(input))
                 .map(chunk -> createTask(firstStage, chunk))
-                .forEach(executionQueueService::schedule);
+                .collect(Collectors.toList());
     }
 
     private List<Stage> createStages(final Problem problem, final ProblemDto problemDto) {
@@ -151,7 +175,7 @@ public class SubmissionService {
 
     private void solveTask(final Task task, final TaskSolutionDto solution) {
 
-        updateTask(task, solution.getResult());
+        updateTask(task, solution);
 
         final var stage = task.getStage();
         final var problem = stage.getProblem();
@@ -172,10 +196,13 @@ public class SubmissionService {
         }
     }
 
-    private void updateTask(final Task task, final List<String> output) {
+    private void updateTask(final Task task, final TaskSolutionDto solution) {
 
         task.setState(TaskState.COMPLETED);
-        task.setOutput(output);
+        task.setComputationDuration(solution.getComputationDuration());
+        task.setTaskStart(solution.getTaskStart());
+        task.setTaskFinish(solution.getTaskFinish());
+        task.setOutput(solution.getResult());
         taskRepository.save(task);
     }
 
@@ -183,6 +210,7 @@ public class SubmissionService {
 
         problem.setSolved(Boolean.TRUE);
         problem.setResult(output.get(0));
+        problem.setFinishDate(new Date());
         problemRepository.save(problem);
     }
 
@@ -244,11 +272,58 @@ public class SubmissionService {
         return input.get(index + 1);
     }
 
-    public String getResult(final Long id) {
+    public ResultDto getResult(final Long id) {
 
         return problemRepository.findById(id)
-                .map(this::getResult)
-                .orElse("There is bo problem with such id: " + id);
+                .map(this::buildResult)
+                .orElseThrow(() -> new IllegalArgumentException("There is no problem with such id: " + id));
+    }
+
+    private ResultDto buildResult(final Problem problem) {
+
+        final List<Task> tasks = getTasksForResult(problem);
+
+        return ResultDto.builder()
+                .result(getResult(problem))
+                .completed(problem.isSolved())
+                .executionDuration(calculateExecutionDuration(problem))
+                .computationDuration(calculateComputationDuration(tasks))
+                .overheadDuration(calculateOverheadDuration(tasks))
+                .build();
+    }
+
+    private long calculateExecutionDuration(final Problem problem) {
+
+        return Optional.of(problem)
+                .filter(Problem::isSolved)
+                .map(p -> p.getFinishDate().getTime() - p.getStartDate().getTime())
+                .orElse(0L);
+    }
+
+    private long calculateComputationDuration(final List<Task> tasks) {
+
+        return tasks.stream()
+                .mapToLong(Task::getComputationDuration)
+                .sum();
+    }
+
+    private long calculateOverheadDuration(final List<Task> tasks) {
+
+        return tasks.stream()
+                .mapToLong(task -> (task.getTaskFinish().getTime() - task.getTaskStart().getTime()) - task.getComputationDuration())
+                .sum();
+    }
+
+    private List<Task> getTasksForResult(final Problem problem) {
+
+        return Optional.of(problem)
+                .filter(Problem::isSolved)
+                .map(Problem::getStages)
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(Stage::getTasks)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
     }
 
     private String getResult(final Problem problem) {

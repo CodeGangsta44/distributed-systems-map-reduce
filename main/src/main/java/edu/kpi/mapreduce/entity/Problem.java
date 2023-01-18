@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 
 @Entity(name = "problems")
@@ -22,4 +23,6 @@ public class Problem {
     @Column(columnDefinition = "TEXT")
     private String result;
     private boolean solved;
+    private Date startDate;
+    private Date finishDate;
 }

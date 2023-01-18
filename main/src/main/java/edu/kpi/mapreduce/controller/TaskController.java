@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Date;
 import java.util.NoSuchElementException;
 
 import static edu.kpi.mapreduce.constant.MapReduceConstants.WORKER_ID_HEADER_NAME;
@@ -46,6 +47,7 @@ public class TaskController {
     @PostMapping
     public void solve(@RequestBody final TaskSolutionDto solution) {
 
+        solution.setTaskFinish(new Date());
         submissionService.solveTask(solution);
     }
 
