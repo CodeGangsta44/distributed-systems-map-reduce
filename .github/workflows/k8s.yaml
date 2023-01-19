@@ -69,5 +69,4 @@ jobs:
           manifests: |
             ./k8s/main-deployment.yaml
             ./k8s/worker-deployment.yaml
-            ./k8s/mysql-deployment.yaml
             ./k8s/lb-deployment.yaml

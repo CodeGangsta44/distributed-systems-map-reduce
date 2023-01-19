@@ -281,15 +281,24 @@ public class SubmissionService {
 
     private ResultDto buildResult(final Problem problem) {
 
-        final List<Task> tasks = getTasksForResult(problem);
+        try {
 
-        return ResultDto.builder()
-                .result(getResult(problem))
-                .completed(problem.isSolved())
-                .executionDuration(calculateExecutionDuration(problem))
-                .computationDuration(calculateComputationDuration(tasks))
-                .overheadDuration(calculateOverheadDuration(tasks))
-                .build();
+            final List<Task> tasks = getTasksForResult(problem);
+
+            return ResultDto.builder()
+                    .result(getResult(problem))
+                    .completed(problem.isSolved())
+                    .executionDuration(calculateExecutionDuration(problem))
+                    .computationDuration(calculateComputationDuration(tasks))
+                    .overheadDuration(calculateOverheadDuration(tasks))
+                    .build();
+
+        } catch (final NullPointerException e) {
+
+            return ResultDto.builder()
+                    .completed(Boolean.FALSE)
+                    .build();
+        }
     }
 
     private long calculateExecutionDuration(final Problem problem) {

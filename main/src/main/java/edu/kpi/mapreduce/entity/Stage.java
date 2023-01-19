@@ -1,5 +1,6 @@
 package edu.kpi.mapreduce.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -21,7 +22,7 @@ public class Stage {
     private StageType type;
     @Column(columnDefinition = "TEXT")
     private String implementation;
-    @OneToMany(mappedBy = "stage", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "stage", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     public List<Task> tasks;
     @ManyToOne
     private Problem problem;

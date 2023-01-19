@@ -33,22 +33,5 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: map-reduce-secrets
-                  key: mysql-database
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: map-reduce-secrets
-                  key: mysql-user
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: map-reduce-secrets
-                  key: mysql-password
-            - name: DB_URL
-              value: jdbc:mysql://mysql:3306/$(DB_NAME)
             - name: PARALLELISM_LEVEL
               value: "${WORKER_QTY}"
